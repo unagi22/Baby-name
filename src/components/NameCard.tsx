@@ -3,12 +3,11 @@ import {
   motion,
   PanInfo,
   useAnimation,
-  useMotionTemplate,
-  useMotionValue,
   useTransform,
+  useMotionValue,
 } from "framer-motion";
 import { Card } from "@/components/ui/card";
-import { Heart, Share2, Archive } from "lucide-react";
+import { Heart } from "lucide-react";
 import { NameSuggestion } from "@/types";
 import { cn } from "@/lib/utils";
 
@@ -30,7 +29,7 @@ export function NameCard({ suggestion, onSwipe, onHeart }: NameCardProps) {
   );
 
   const handleDragEnd = async (
-    event: MouseEvent | TouchEvent | PointerEvent,
+    _: MouseEvent | TouchEvent | PointerEvent,
     info: PanInfo
   ) => {
     const offset = info.offset.x;
@@ -48,10 +47,6 @@ export function NameCard({ suggestion, onSwipe, onHeart }: NameCardProps) {
       controls.start({ x: 0, opacity: 1 });
     }
     setIsDragging(false);
-  };
-
-  const handleShare = () => {
-    // Share functionality
   };
 
   return (

@@ -8,7 +8,7 @@ import { buttonVariants } from "@/components/ui/button";
 export type CalendarProps = React.ComponentProps<typeof DayPicker>;
 
 const Calendar = React.forwardRef<HTMLDivElement, CalendarProps>(
-  ({ className, classNames, showOutsideDays = true, ...props }, ref) => {
+  ({ className, classNames, showOutsideDays = true, ...props }, _) => {
     return (
       <DayPicker
         showOutsideDays={showOutsideDays}
