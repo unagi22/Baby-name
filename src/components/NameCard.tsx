@@ -8,7 +8,7 @@ import {
   useTransform,
 } from "framer-motion";
 import { Card } from "@/components/ui/card";
-import { Heart } from "lucide-react";
+import { Heart, Share2, Archive } from "lucide-react";
 import { NameSuggestion } from "@/types";
 import { cn } from "@/lib/utils";
 
@@ -48,6 +48,10 @@ export function NameCard({ suggestion, onSwipe, onHeart }: NameCardProps) {
       controls.start({ x: 0, opacity: 1 });
     }
     setIsDragging(false);
+  };
+
+  const handleShare = () => {
+    // Share functionality
   };
 
   return (
