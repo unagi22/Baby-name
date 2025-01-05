@@ -11,6 +11,7 @@ export default defineConfig({
   },
   optimizeDeps: {
     include: [
+      "@hookform/resolvers",
       "@radix-ui/react-accordion",
       "@radix-ui/react-alert-dialog",
       "@radix-ui/react-aspect-ratio",
@@ -42,6 +43,8 @@ export default defineConfig({
       "class-variance-authority",
       "clsx",
       "cmdk",
+      "embla-carousel-autoplay",
+      "embla-carousel-react",
       "framer-motion",
       "input-otp",
       "lucide-react",
@@ -51,6 +54,7 @@ export default defineConfig({
       "sonner",
       "tailwind-merge",
       "vaul",
+      "zod",
     ],
     esbuildOptions: {
       target: "es2020",
@@ -62,6 +66,7 @@ export default defineConfig({
     sourcemap: true,
     commonjsOptions: {
       transformMixedEsModules: true,
+      include: [/node_modules/],
     },
     rollupOptions: {
       output: {
@@ -96,9 +101,10 @@ export default defineConfig({
             "@radix-ui/react-toggle-group",
             "@radix-ui/react-tooltip",
           ],
-          utils: ["class-variance-authority", "clsx", "tailwind-merge"],
+          utils: ["class-variance-authority", "clsx", "tailwind-merge", "zod"],
           motion: ["framer-motion"],
-          forms: ["react-hook-form", "input-otp"],
+          forms: ["react-hook-form", "input-otp", "@hookform/resolvers"],
+          carousel: ["embla-carousel-react", "embla-carousel-autoplay"],
           ui: [
             "sonner",
             "vaul",
