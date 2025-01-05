@@ -15,6 +15,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { motion } from "framer-motion";
+import { Baby } from "lucide-react";
 
 interface SuggestPageProps {
   projectId: string;
@@ -84,6 +85,28 @@ export function SuggestPage({ projectId }: SuggestPageProps) {
     });
   };
 
+  const getGenderIcon = () => {
+    switch (project.genderPreference) {
+      case "male":
+        return "👦";
+      case "female":
+        return "👧";
+      default:
+        return "👶";
+    }
+  };
+
+  const getGenderColor = () => {
+    switch (project.genderPreference) {
+      case "male":
+        return "text-blue-500 bg-blue-50";
+      case "female":
+        return "text-pink-500 bg-pink-50";
+      default:
+        return "text-purple-500 bg-purple-50";
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-muted p-4">
       <motion.div
@@ -91,15 +114,38 @@ export function SuggestPage({ projectId }: SuggestPageProps) {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
       >
+        <header className="text-center space-y-4">
+          <motion.h1
+            className="text-4xl font-bold tracking-tight"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+          >
+            Baby Name Explorer
+          </motion.h1>
+        </header>
+
         <Card className="text-center">
           <CardHeader>
-            <CardTitle>{project.coupleNames}'s Baby Name Project</CardTitle>
-            <CardDescription>
-              Help {project.coupleNames} find the perfect name for their baby!
+            <div className="flex items-center justify-center gap-3 mb-4">
+              <div className={`text-3xl p-3 rounded-full ${getGenderColor()}`}>
+                {getGenderIcon()}
+              </div>
+              <div>
+                <CardTitle className="text-2xl">
+                  {project.coupleNames}'s Baby Name Project
+                </CardTitle>
+              </div>
+            </div>
+            <CardDescription className="text-base">
+              <p>
+                Help {project.coupleNames} find the perfect name for their baby!
+              </p>
               {project.genderPreference !== "both" && (
-                <span className="block mt-1">
-                  They are looking for {project.genderPreference} names.
-                </span>
+                <p className="mt-2 font-medium text-foreground">
+                  They are specifically looking for {project.genderPreference}{" "}
+                  names
+                </p>
               )}
             </CardDescription>
           </CardHeader>
@@ -122,6 +168,7 @@ export function SuggestPage({ projectId }: SuggestPageProps) {
                   onChange={(e) => setName(e.target.value)}
                   placeholder="Enter a baby name"
                   required
+                  className="text-lg"
                 />
               </div>
 
@@ -132,16 +179,40 @@ export function SuggestPage({ projectId }: SuggestPageProps) {
                   onValueChange={(value) =>
                     setGender(value as "male" | "female")
                   }
-                  className="flex gap-4"
+                  className="grid grid-cols-2 gap-4"
                 >
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="male" id="male" />
-                    <Label htmlFor="male">Male</Label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="female" id="female" />
-                    <Label htmlFor="female">Female</Label>
-                  </div>
+                  <Label
+                    htmlFor="male"
+                    className={`flex flex-col items-center justify-center p-4 rounded-lg border-2 cursor-pointer transition-all ${
+                      gender === "male"
+                        ? "bg-blue-50 border-blue-400 text-blue-700"
+                        : "hover:bg-muted"
+                    }`}
+                  >
+                    <RadioGroupItem
+                      value="male"
+                      id="male"
+                      className="sr-only"
+                    />
+                    <span className="text-2xl">👦</span>
+                    <span className="mt-1">Male</span>
+                  </Label>
+                  <Label
+                    htmlFor="female"
+                    className={`flex flex-col items-center justify-center p-4 rounded-lg border-2 cursor-pointer transition-all ${
+                      gender === "female"
+                        ? "bg-pink-50 border-pink-400 text-pink-700"
+                        : "hover:bg-muted"
+                    }`}
+                  >
+                    <RadioGroupItem
+                      value="female"
+                      id="female"
+                      className="sr-only"
+                    />
+                    <span className="text-2xl">👧</span>
+                    <span className="mt-1">Female</span>
+                  </Label>
                 </RadioGroup>
               </div>
 
@@ -157,7 +228,7 @@ export function SuggestPage({ projectId }: SuggestPageProps) {
               </div>
             </CardContent>
             <CardFooter>
-              <Button type="submit" className="w-full">
+              <Button type="submit" className="w-full text-lg py-6">
                 Submit Suggestion
               </Button>
             </CardFooter>
