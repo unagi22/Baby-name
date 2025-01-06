@@ -1,18 +1,18 @@
-export type Gender = 'male' | 'female' | 'both';
-
-export interface NameSuggestion {
+export type NameSuggestion = {
   id: string;
   name: string;
-  gender: Exclude<Gender, 'both'>;
+  gender: "male" | "female";
   contributor: string;
-  status: 'new' | 'interesting' | 'archived' | 'hearted';
+  status: "new" | "favorite" | "hearted";
+  likes: number;
+  likedBy: string[];
   createdAt: string;
-}
+};
 
-export interface Project {
+export type Project = {
   id: string;
   coupleNames: string;
-  genderPreference: Gender;
+  genderPreference: "male" | "female" | "both";
   suggestions: NameSuggestion[];
   createdAt: string;
-}
+};

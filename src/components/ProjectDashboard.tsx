@@ -4,10 +4,18 @@ import { Project, NameSuggestion } from "@/types";
 import { NameCard } from "./NameCard";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Share2, SlidersHorizontal } from "lucide-react";
+import { Share2, SlidersHorizontal, Plus } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { motion } from "framer-motion";
 import { Card } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -17,6 +25,7 @@ import {
   DropdownMenuCheckboxItem,
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
+import { SuggestForm } from "./SuggestForm";
 
 interface ProjectDashboardProps {
   projectId: string;
@@ -24,8 +33,8 @@ interface ProjectDashboardProps {
 
 type FilterState = {
   gender: "all" | "male" | "female";
-  hearted: boolean;
-  archived: boolean;
+  favorites: boolean;
+  mostPopular: boolean;
   contributor: string | null;
 };
 
@@ -34,30 +43,41 @@ export function ProjectDashboard({ projectId }: ProjectDashboardProps) {
     "babyNamingProjects",
     []
   );
-  const [activeTab, setActiveTab] = useState<
-    "new" | "interesting" | "archived"
-  >("new");
+  const [activeTab, setActiveTab] = useState<"new" | "favorites">("new");
   const [filters, setFilters] = useState<FilterState>({
     gender: "all",
-    hearted: false,
-    archived: false,
+    favorites: false,
+    mostPopular: false,
     contributor: null,
   });
+  const [showSuggestDialog, setShowSuggestDialog] = useState(false);
   const { toast } = useToast();
 
   const project = projects.find((p) => p.id === projectId);
   if (!project) return null;
 
-  const handleSwipe = (suggestionId: string, direction: "left" | "right") => {
-    const newStatus: NameSuggestion["status"] =
-      direction === "right" ? "interesting" : "archived";
+  const handleLike = (suggestionId: string) => {
+    // Generate a random user ID for demo purposes
+    // In a real app, this would be the actual user's ID
+    const userId = Math.random().toString(36).substr(2, 9);
+
     const updatedProjects = projects.map((p) => {
       if (p.id === projectId) {
         return {
           ...p,
-          suggestions: p.suggestions.map((s) =>
-            s.id === suggestionId ? { ...s, status: newStatus } : s
-          ),
+          suggestions: p.suggestions.map((s) => {
+            if (s.id === suggestionId) {
+              const isLiked = s.likedBy.includes(userId);
+              return {
+                ...s,
+                likes: isLiked ? s.likes - 1 : s.likes + 1,
+                likedBy: isLiked
+                  ? s.likedBy.filter((id) => id !== userId)
+                  : [...s.likedBy, userId],
+              };
+            }
+            return s;
+          }),
         };
       }
       return p;
@@ -65,7 +85,7 @@ export function ProjectDashboard({ projectId }: ProjectDashboardProps) {
     setProjects(updatedProjects);
   };
 
-  const handleHeart = (suggestionId: string) => {
+  const handleFavorite = (suggestionId: string) => {
     const updatedProjects = projects.map((p) => {
       if (p.id === projectId) {
         return {
@@ -74,9 +94,7 @@ export function ProjectDashboard({ projectId }: ProjectDashboardProps) {
             s.id === suggestionId
               ? {
                   ...s,
-                  status: (s.status === "hearted"
-                    ? "interesting"
-                    : "hearted") as NameSuggestion["status"],
+                  status: s.status === "favorite" ? "new" : "favorite",
                 }
               : s
           ),
@@ -95,25 +113,28 @@ export function ProjectDashboard({ projectId }: ProjectDashboardProps) {
     return Array.from(uniqueContributors);
   }, [project.suggestions]);
 
-  const filteredSuggestions = project.suggestions.filter((s) => {
-    // First filter by tab
-    if (activeTab === "new" && s.status !== "new") return false;
-    if (
-      activeTab === "interesting" &&
-      !["interesting", "hearted"].includes(s.status)
-    )
-      return false;
-    if (activeTab === "archived" && s.status !== "archived") return false;
+  const filteredSuggestions = project.suggestions
+    .filter((s) => {
+      // First filter by tab
+      if (activeTab === "new" && s.status === "favorite") return false;
+      if (activeTab === "favorites" && s.status !== "favorite") return false;
 
-    // Then apply additional filters
-    if (filters.gender !== "all" && s.gender !== filters.gender) return false;
-    if (filters.hearted && s.status !== "hearted") return false;
-    if (filters.archived && s.status !== "archived") return false;
-    if (filters.contributor && s.contributor !== filters.contributor)
-      return false;
+      // Then apply additional filters
+      if (filters.gender !== "all" && s.gender !== filters.gender) return false;
+      if (filters.favorites && s.status !== "favorite") return false;
+      if (filters.contributor && s.contributor !== filters.contributor)
+        return false;
 
-    return true;
-  });
+      return true;
+    })
+    .sort((a, b) => {
+      // Sort by most popular if the filter is active
+      if (filters.mostPopular) {
+        return b.likes - a.likes;
+      }
+      // Otherwise, sort by newest first
+      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+    });
 
   const handleShare = async () => {
     try {
@@ -121,7 +142,7 @@ export function ProjectDashboard({ projectId }: ProjectDashboardProps) {
 
       if (navigator.share) {
         await navigator.share({
-          title: `${project.coupleNames}'s Baby Name Project`,
+          title: project.coupleNames,
           text: "Help us choose a name for our baby!",
           url: shareUrl,
         });
@@ -183,7 +204,7 @@ export function ProjectDashboard({ projectId }: ProjectDashboardProps) {
               </div>
               <div className="space-y-1">
                 <h2 className="text-2xl font-semibold">
-                  {project.coupleNames}'s Project
+                  {project.coupleNames}
                 </h2>
                 <p className="text-sm text-muted-foreground">
                   Looking for{" "}
@@ -194,6 +215,34 @@ export function ProjectDashboard({ projectId }: ProjectDashboardProps) {
               </div>
             </div>
             <div className="flex gap-2">
+              <Dialog
+                open={showSuggestDialog}
+                onOpenChange={setShowSuggestDialog}
+              >
+                <DialogTrigger asChild>
+                  <Button variant="outline" className="gap-2">
+                    <Plus className="w-4 h-4" />
+                    Add Name
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Suggest a Name</DialogTitle>
+                    <DialogDescription>
+                      Help choose the perfect name for this baby
+                    </DialogDescription>
+                  </DialogHeader>
+                  <SuggestForm
+                    projectId={projectId}
+                    onSuccess={() => setShowSuggestDialog(false)}
+                  />
+                </DialogContent>
+              </Dialog>
+
+              <Button variant="outline" size="icon" onClick={handleShare}>
+                <Share2 className="w-4 h-4" />
+              </Button>
+
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="outline" size="icon" className="relative">
@@ -229,7 +278,7 @@ export function ProjectDashboard({ projectId }: ProjectDashboardProps) {
                       setFilters((f) => ({ ...f, gender: "male" }))
                     }
                   >
-                    Male Names
+                    Boy Names
                   </DropdownMenuCheckboxItem>
                   <DropdownMenuCheckboxItem
                     checked={filters.gender === "female"}
@@ -237,35 +286,35 @@ export function ProjectDashboard({ projectId }: ProjectDashboardProps) {
                       setFilters((f) => ({ ...f, gender: "female" }))
                     }
                   >
-                    Female Names
+                    Girl Names
                   </DropdownMenuCheckboxItem>
 
                   <DropdownMenuSeparator />
                   <DropdownMenuLabel className="text-xs text-muted-foreground">
-                    Status
+                    Sort & Filter
                   </DropdownMenuLabel>
                   <DropdownMenuCheckboxItem
-                    checked={filters.hearted}
+                    checked={filters.mostPopular}
                     onCheckedChange={(checked) =>
-                      setFilters((f) => ({ ...f, hearted: checked }))
+                      setFilters((f) => ({ ...f, mostPopular: checked }))
                     }
                   >
-                    Hearted Only
+                    Most Popular First
                   </DropdownMenuCheckboxItem>
                   <DropdownMenuCheckboxItem
-                    checked={filters.archived}
+                    checked={filters.favorites}
                     onCheckedChange={(checked) =>
-                      setFilters((f) => ({ ...f, archived: checked }))
+                      setFilters((f) => ({ ...f, favorites: checked }))
                     }
                   >
-                    Include Archived
+                    Favorites Only
                   </DropdownMenuCheckboxItem>
 
                   {contributors.length > 0 && (
                     <>
                       <DropdownMenuSeparator />
                       <DropdownMenuLabel className="text-xs text-muted-foreground">
-                        By Contributor
+                        Filter by Contributor
                       </DropdownMenuLabel>
                       <DropdownMenuCheckboxItem
                         checked={filters.contributor === null}
@@ -290,135 +339,73 @@ export function ProjectDashboard({ projectId }: ProjectDashboardProps) {
                   )}
                 </DropdownMenuContent>
               </DropdownMenu>
-
-              <Button
-                onClick={handleShare}
-                size="icon"
-                className="bg-primary hover:bg-primary/90"
-              >
-                <Share2 className="w-4 h-4" />
-              </Button>
             </div>
+          </div>
+
+          <div className="mt-8">
+            <Tabs
+              value={activeTab}
+              onValueChange={(v) => setActiveTab(v as typeof activeTab)}
+            >
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="new">All Names</TabsTrigger>
+                <TabsTrigger value="favorites">Favorites</TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="new" className="mt-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {filteredSuggestions.length === 0 ? (
+                    <Card className="p-8 text-center col-span-2">
+                      <p className="text-muted-foreground">No names yet</p>
+                      <Button
+                        variant="outline"
+                        className="mt-4"
+                        onClick={() => setShowSuggestDialog(true)}
+                      >
+                        <Plus className="w-4 h-4 mr-2" />
+                        Add First Name
+                      </Button>
+                    </Card>
+                  ) : (
+                    filteredSuggestions.map((suggestion) => (
+                      <NameCard
+                        key={suggestion.id}
+                        suggestion={suggestion}
+                        onLike={() => handleLike(suggestion.id)}
+                        onFavorite={() => handleFavorite(suggestion.id)}
+                      />
+                    ))
+                  )}
+                </div>
+              </TabsContent>
+
+              <TabsContent value="favorites" className="mt-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {filteredSuggestions.length === 0 ? (
+                    <Card className="p-8 text-center col-span-2">
+                      <p className="text-muted-foreground">
+                        No favorite names yet
+                      </p>
+                      <p className="text-sm text-muted-foreground mt-2">
+                        Click the heart icon on names you love to add them to
+                        your favorites
+                      </p>
+                    </Card>
+                  ) : (
+                    filteredSuggestions.map((suggestion) => (
+                      <NameCard
+                        key={suggestion.id}
+                        suggestion={suggestion}
+                        onLike={() => handleLike(suggestion.id)}
+                        onFavorite={() => handleFavorite(suggestion.id)}
+                      />
+                    ))
+                  )}
+                </div>
+              </TabsContent>
+            </Tabs>
           </div>
         </div>
-
-        <Tabs
-          value={activeTab}
-          onValueChange={(v) => setActiveTab(v as typeof activeTab)}
-          className="w-full"
-        >
-          <div className="border-t">
-            <TabsList className="w-full rounded-none h-14">
-              <TabsTrigger
-                value="new"
-                className="flex-1 data-[state=active]:bg-background"
-              >
-                <span className="text-lg">New</span>
-              </TabsTrigger>
-              <TabsTrigger
-                value="interesting"
-                className="flex-1 data-[state=active]:bg-background"
-              >
-                <span className="text-lg">Interesting</span>
-              </TabsTrigger>
-              <TabsTrigger
-                value="archived"
-                className="flex-1 data-[state=active]:bg-background"
-              >
-                <span className="text-lg">Archived</span>
-              </TabsTrigger>
-            </TabsList>
-          </div>
-
-          <TabsContent value={activeTab} className="p-4 md:p-8 min-h-[400px]">
-            <div className="space-y-4">
-              {filteredSuggestions.length === 0 ? (
-                <motion.div
-                  className="space-y-6"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ delay: 0.2 }}
-                >
-                  <div className="text-center py-8">
-                    <div className="max-w-sm mx-auto space-y-4">
-                      <div className="text-4xl">✨</div>
-                      <h3 className="text-xl font-semibold">No names yet</h3>
-                      <p className="text-sm text-muted-foreground">
-                        {activeFiltersCount > 0
-                          ? "Try adjusting your filters to see more names"
-                          : "Share your project with friends and family to get name suggestions!"}
-                      </p>
-                      {activeFiltersCount > 0 ? (
-                        <Button
-                          onClick={() =>
-                            setFilters({
-                              gender: "all",
-                              hearted: false,
-                              archived: false,
-                              contributor: null,
-                            })
-                          }
-                          variant="outline"
-                          size="lg"
-                          className="mt-4"
-                        >
-                          Clear Filters
-                        </Button>
-                      ) : (
-                        <Button
-                          onClick={handleShare}
-                          variant="outline"
-                          size="lg"
-                          className="mt-4"
-                        >
-                          <Share2 className="w-4 h-4 mr-2" />
-                          Share Project
-                        </Button>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Mock cards */}
-                  <div className="opacity-30 pointer-events-none max-w-md mx-auto">
-                    {[1, 2].map((i) => (
-                      <motion.div
-                        key={i}
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.3 + i * 0.1 }}
-                        className="mb-4"
-                      >
-                        <Card className="p-4">
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-2">
-                              <div className="w-6 h-6 bg-muted rounded-full" />
-                              <div className="w-24 h-6 bg-muted rounded" />
-                            </div>
-                            <div className="w-8 h-8 bg-muted rounded-full" />
-                          </div>
-                          <div className="w-32 h-4 bg-muted rounded mt-2" />
-                        </Card>
-                      </motion.div>
-                    ))}
-                  </div>
-                </motion.div>
-              ) : (
-                <div className="max-w-md mx-auto">
-                  {filteredSuggestions.map((suggestion: NameSuggestion) => (
-                    <NameCard
-                      key={suggestion.id}
-                      suggestion={suggestion}
-                      onSwipe={(direction) =>
-                        handleSwipe(suggestion.id, direction)
-                      }
-                      onHeart={() => handleHeart(suggestion.id)}
-                    />
-                  ))}
-                </div>
-              )}
-            </div>
-          </TabsContent>
-        </Tabs>
       </motion.div>
     </div>
   );
