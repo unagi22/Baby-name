@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { useLocalStorage } from "@/hooks/useLocalStorage";
 import { Project, NameSuggestion } from "@/types";
 import { NameCard } from "./NameCard";
@@ -53,27 +53,43 @@ export function ProjectDashboard({ projectId }: ProjectDashboardProps) {
   const [showSuggestDialog, setShowSuggestDialog] = useState(false);
   const { toast } = useToast();
 
+  // Generate a persistent user ID for the session
+  const [userId] = useState(() => {
+    const storedId = localStorage.getItem("babyNameUserId");
+    if (storedId) return storedId;
+    const newId = Math.random().toString(36).substr(2, 9);
+    localStorage.setItem("babyNameUserId", newId);
+    return newId;
+  });
+
   const project = projects.find((p) => p.id === projectId);
   if (!project) return null;
 
-  const handleLike = (suggestionId: string) => {
-    // Generate a random user ID for demo purposes
-    // In a real app, this would be the actual user's ID
-    const userId = Math.random().toString(36).substr(2, 9);
+  const handleSuggestionAdded = useCallback(
+    (newSuggestion: NameSuggestion) => {
+      setProjects((currentProjects) =>
+        currentProjects.map((p) =>
+          p.id === projectId
+            ? { ...p, suggestions: [...p.suggestions, newSuggestion] }
+            : p
+        )
+      );
+      setShowSuggestDialog(false);
+    },
+    [projectId]
+  );
 
+  const handleLike = (suggestionId: string) => {
     const updatedProjects = projects.map((p) => {
       if (p.id === projectId) {
         return {
           ...p,
           suggestions: p.suggestions.map((s) => {
-            if (s.id === suggestionId) {
-              const isLiked = s.likedBy.includes(userId);
+            if (s.id === suggestionId && !s.likedBy.includes(userId)) {
               return {
                 ...s,
-                likes: isLiked ? s.likes - 1 : s.likes + 1,
-                likedBy: isLiked
-                  ? s.likedBy.filter((id) => id !== userId)
-                  : [...s.likedBy, userId],
+                likes: s.likes + 1,
+                likedBy: [...s.likedBy, userId],
               };
             }
             return s;
@@ -92,10 +108,7 @@ export function ProjectDashboard({ projectId }: ProjectDashboardProps) {
           ...p,
           suggestions: p.suggestions.map((s) =>
             s.id === suggestionId
-              ? {
-                  ...s,
-                  status: s.status === "favorite" ? "new" : "favorite",
-                }
+              ? { ...s, status: s.status === "favorite" ? "new" : "favorite" }
               : s
           ),
         };
@@ -115,11 +128,10 @@ export function ProjectDashboard({ projectId }: ProjectDashboardProps) {
 
   const filteredSuggestions = project.suggestions
     .filter((s) => {
-      // First filter by tab
-      if (activeTab === "new" && s.status === "favorite") return false;
-      if (activeTab === "favorites" && s.status !== "favorite") return false;
+      // If we're in favorites tab, only show favorites
+      if (activeTab === "favorites") return s.status === "favorite";
 
-      // Then apply additional filters
+      // For all names tab, apply filters
       if (filters.gender !== "all" && s.gender !== filters.gender) return false;
       if (filters.favorites && s.status !== "favorite") return false;
       if (filters.contributor && s.contributor !== filters.contributor)
@@ -137,9 +149,9 @@ export function ProjectDashboard({ projectId }: ProjectDashboardProps) {
     });
 
   const handleShare = async () => {
-    try {
-      const shareUrl = `${window.location.origin}/suggest/${projectId}`;
+    const shareUrl = `${window.location.origin}/suggest/${projectId}`;
 
+    try {
       if (navigator.share) {
         await navigator.share({
           title: project.coupleNames,
@@ -155,11 +167,8 @@ export function ProjectDashboard({ projectId }: ProjectDashboardProps) {
         });
       }
     } catch (error) {
-      toast({
-        title: "Couldn't share",
-        description: "Please try copying the link manually.",
-        variant: "destructive",
-      });
+      // Silent fail - no error notification needed
+      console.log("Share cancelled or failed silently");
     }
   };
 
@@ -234,7 +243,7 @@ export function ProjectDashboard({ projectId }: ProjectDashboardProps) {
                   </DialogHeader>
                   <SuggestForm
                     projectId={projectId}
-                    onSuccess={() => setShowSuggestDialog(false)}
+                    onSuccess={handleSuggestionAdded}
                   />
                 </DialogContent>
               </Dialog>
@@ -373,6 +382,7 @@ export function ProjectDashboard({ projectId }: ProjectDashboardProps) {
                         suggestion={suggestion}
                         onLike={() => handleLike(suggestion.id)}
                         onFavorite={() => handleFavorite(suggestion.id)}
+                        currentUserId={userId}
                       />
                     ))
                   )}
@@ -398,6 +408,7 @@ export function ProjectDashboard({ projectId }: ProjectDashboardProps) {
                         suggestion={suggestion}
                         onLike={() => handleLike(suggestion.id)}
                         onFavorite={() => handleFavorite(suggestion.id)}
+                        currentUserId={userId}
                       />
                     ))
                   )}

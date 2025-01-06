@@ -18,6 +18,16 @@ interface CreateProjectProps {
   onProjectCreated: (projectId: string) => void;
 }
 
+// Function to generate a URL-friendly unique ID
+function generateProjectId(): string {
+  // Get current timestamp
+  const timestamp = Date.now().toString(36);
+  // Get random string
+  const randomStr = Math.random().toString(36).substring(2, 8);
+  // Combine them with a separator that's URL-safe
+  return `${timestamp}-${randomStr}`;
+}
+
 export function CreateProject({ onProjectCreated }: CreateProjectProps) {
   const [projects, setProjects] = useLocalStorage<Project[]>(
     "babyNamingProjects",
@@ -31,8 +41,8 @@ export function CreateProject({ onProjectCreated }: CreateProjectProps) {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Generate a unique ID using timestamp and random string
-    const uniqueId = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    // Generate a unique, URL-friendly ID
+    const uniqueId = generateProjectId();
 
     // Format couple names to "X and Y's Baby"
     const formattedNames = coupleNames
@@ -48,6 +58,13 @@ export function CreateProject({ onProjectCreated }: CreateProjectProps) {
       suggestions: [],
       createdAt: new Date().toISOString(),
     };
+
+    // Check if project with this ID already exists (extremely unlikely but safe)
+    if (projects.some((p) => p.id === uniqueId)) {
+      // Try again with a new ID
+      handleSubmit(e);
+      return;
+    }
 
     setProjects([...projects, newProject]);
     onProjectCreated(uniqueId);

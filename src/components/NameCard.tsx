@@ -6,16 +6,22 @@ import {
   useTransform,
 } from "framer-motion";
 import { Card } from "@/components/ui/card";
-import { Heart } from "lucide-react";
+import { Heart, Star } from "lucide-react";
 import { NameSuggestion } from "@/types";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface NameCardProps {
   suggestion: NameSuggestion;
   onLike: () => void;
   onFavorite: () => void;
   showLikeButton?: boolean;
+  currentUserId: string;
 }
 
 export function NameCard({
@@ -23,10 +29,13 @@ export function NameCard({
   onLike,
   onFavorite,
   showLikeButton = true,
+  currentUserId,
 }: NameCardProps) {
   const [isHovered, setIsHovered] = useState(false);
   const scale = useMotionValue(1);
   const rotate = useTransform(scale, [1, 1.02], [0, 1]);
+
+  const hasLiked = suggestion.likedBy.includes(currentUserId);
 
   return (
     <motion.div
@@ -52,43 +61,66 @@ export function NameCard({
           </div>
           <div className="flex items-center gap-2">
             {showLikeButton && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onLike();
-                }}
-                className="text-muted-foreground hover:text-foreground"
-              >
-                <Heart
-                  className={cn(
-                    "w-4 h-4",
-                    suggestion.likedBy.length > 0 && "fill-red-500 text-red-500"
-                  )}
-                />
-                <span className="ml-1">{suggestion.likes}</span>
-              </Button>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (!hasLiked) {
+                        onLike();
+                      }
+                    }}
+                    className={cn(
+                      "text-muted-foreground hover:text-foreground",
+                      hasLiked && "text-red-500 hover:text-red-600"
+                    )}
+                    disabled={hasLiked}
+                  >
+                    <Heart
+                      className={cn("w-4 h-4", hasLiked && "fill-current")}
+                    />
+                    <span className="ml-1">{suggestion.likes}</span>
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  {hasLiked
+                    ? "You've already liked this name"
+                    : "Like this name"}
+                </TooltipContent>
+              </Tooltip>
             )}
-            <motion.button
-              onClick={(e) => {
-                e.stopPropagation();
-                onFavorite();
-              }}
-              whileTap={{ scale: 0.9 }}
-              whileHover={{ scale: 1.1 }}
-              className={cn(
-                "p-2 rounded-full transition-colors",
-                suggestion.status === "favorite" && "text-yellow-500"
-              )}
-            >
-              <Heart
-                className={cn(
-                  "w-4 h-4 transition-transform",
-                  suggestion.status === "favorite" && "fill-current"
-                )}
-              />
-            </motion.button>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <motion.button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onFavorite();
+                  }}
+                  whileTap={{ scale: 0.9 }}
+                  whileHover={{ scale: 1.1 }}
+                  className={cn(
+                    "p-2 rounded-full transition-colors",
+                    suggestion.status === "favorite"
+                      ? "text-yellow-500"
+                      : "text-muted-foreground hover:text-yellow-500"
+                  )}
+                >
+                  <Star
+                    className={cn(
+                      "w-4 h-4 transition-transform",
+                      suggestion.status === "favorite" && "fill-current"
+                    )}
+                  />
+                </motion.button>
+              </TooltipTrigger>
+              <TooltipContent>
+                {suggestion.status === "favorite"
+                  ? "Remove from favorites"
+                  : "Add to favorites"}
+              </TooltipContent>
+            </Tooltip>
           </div>
         </div>
         <div className="mt-1 text-xs text-muted-foreground">

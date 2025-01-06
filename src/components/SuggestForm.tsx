@@ -9,7 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 
 interface SuggestFormProps {
   projectId: string;
-  onSuccess?: () => void;
+  onSuccess?: (suggestion: NameSuggestion) => void;
 }
 
 export function SuggestForm({ projectId, onSuccess }: SuggestFormProps) {
@@ -19,7 +19,10 @@ export function SuggestForm({ projectId, onSuccess }: SuggestFormProps) {
   );
   const [name, setName] = useState("");
   const [gender, setGender] = useState<"male" | "female">("male");
-  const [contributor, setContributor] = useState("");
+  const [contributor, setContributor] = useState(() => {
+    const savedContributor = localStorage.getItem("lastContributor");
+    return savedContributor || "";
+  });
   const { toast } = useToast();
 
   const project = projects.find((p) => p.id === projectId);
@@ -44,6 +47,8 @@ export function SuggestForm({ projectId, onSuccess }: SuggestFormProps) {
       return;
     }
 
+    localStorage.setItem("lastContributor", contributor.trim());
+
     const newSuggestion: NameSuggestion = {
       id: crypto.randomUUID(),
       name: name.trim(),
@@ -63,14 +68,13 @@ export function SuggestForm({ projectId, onSuccess }: SuggestFormProps) {
 
     setProjects(updatedProjects);
     setName("");
-    setContributor("");
 
     toast({
       title: "Thank you! 🎉",
       description: "Your name suggestion has been submitted.",
     });
 
-    onSuccess?.();
+    onSuccess?.(newSuggestion);
   };
 
   return (
