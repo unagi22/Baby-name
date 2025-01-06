@@ -1,6 +1,6 @@
 import { useState, useMemo, useCallback } from "react";
 import { useLocalStorage } from "@/hooks/useLocalStorage";
-import { Project, NameSuggestion } from "@/types";
+import { Project, NameSuggestion, Gender } from "@/types";
 import { NameCard } from "./NameCard";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -32,7 +32,7 @@ interface ProjectDashboardProps {
 }
 
 type FilterState = {
-  gender: "all" | "male" | "female";
+  gender: Gender | "all";
   favorites: boolean;
   mostPopular: boolean;
   contributor: string | null;

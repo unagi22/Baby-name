@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useLocalStorage } from "@/hooks/useLocalStorage";
-import { Project, NameSuggestion } from "@/types";
+import { Project, NameSuggestion, Gender } from "@/types";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
@@ -18,7 +18,7 @@ export function SuggestForm({ projectId, onSuccess }: SuggestFormProps) {
     []
   );
   const [name, setName] = useState("");
-  const [gender, setGender] = useState<"male" | "female">("male");
+  const [gender, setGender] = useState<Exclude<Gender, "both">>("male");
   const [contributor, setContributor] = useState(() => {
     const savedContributor = localStorage.getItem("lastContributor");
     return savedContributor || "";
@@ -95,7 +95,7 @@ export function SuggestForm({ projectId, onSuccess }: SuggestFormProps) {
         <Label>Gender</Label>
         <RadioGroup
           value={gender}
-          onValueChange={(value) => setGender(value as "male" | "female")}
+          onValueChange={(value) => setGender(value as Exclude<Gender, "both">)}
           className="grid grid-cols-2 gap-4"
         >
           <Label

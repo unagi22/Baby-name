@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useLocalStorage } from "@/hooks/useLocalStorage";
-import { Project } from "@/types";
+import { Project, Gender } from "@/types";
 import {
   Card,
   CardContent,
@@ -34,9 +34,7 @@ export function CreateProject({ onProjectCreated }: CreateProjectProps) {
     []
   );
   const [coupleNames, setCoupleNames] = useState("");
-  const [genderPreference, setGenderPreference] = useState<
-    "male" | "female" | "both"
-  >("both");
+  const [genderPreference, setGenderPreference] = useState<Gender>("both");
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();

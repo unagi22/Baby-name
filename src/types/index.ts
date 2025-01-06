@@ -1,9 +1,13 @@
+export type Gender = "male" | "female" | "both";
+
+export type NameStatus = "new" | "favorite";
+
 export type NameSuggestion = {
   id: string;
   name: string;
-  gender: "male" | "female";
+  gender: Exclude<Gender, "both">;
   contributor: string;
-  status: "new" | "favorite" | "hearted";
+  status: NameStatus;
   likes: number;
   likedBy: string[];
   createdAt: string;
@@ -12,7 +16,7 @@ export type NameSuggestion = {
 export type Project = {
   id: string;
   coupleNames: string;
-  genderPreference: "male" | "female" | "both";
+  genderPreference: Gender;
   suggestions: NameSuggestion[];
   createdAt: string;
 };
