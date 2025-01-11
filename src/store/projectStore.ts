@@ -1,8 +1,6 @@
 import { create } from 'zustand';
 import type { Project, NameSuggestion, Gender } from '../types';
-
-// Helper to generate UUID
-const generateId = () => crypto.randomUUID();
+import * as api from '../services/api';
 
 interface ProjectStore {
   currentProject: Project | null;
@@ -16,33 +14,9 @@ interface ProjectStore {
   toggleLike: (nameId: string) => Promise<void>;
 }
 
-// Helper functions for localStorage
-const getStoredProjects = (): Record<string, Project> => {
-  const stored = localStorage.getItem('projects');
-  return stored ? JSON.parse(stored) : {};
-};
-
-const getStoredSuggestions = (): Record<string, NameSuggestion[]> => {
-  const stored = localStorage.getItem('suggestions');
-  return stored ? JSON.parse(stored) : {};
-};
-
-const getStoredLikes = (): Record<string, string[]> => {
-  const stored = localStorage.getItem('likes');
-  return stored ? JSON.parse(stored) : {};
-};
-
-const saveProjects = (projects: Record<string, Project>) => {
-  localStorage.setItem('projects', JSON.stringify(projects));
-};
-
-const saveSuggestions = (suggestions: Record<string, NameSuggestion[]>) => {
-  localStorage.setItem('suggestions', JSON.stringify(suggestions));
-};
-
-const saveLikes = (likes: Record<string, string[]>) => {
-  localStorage.setItem('likes', JSON.stringify(likes));
-};
+// Keep local cache of projects and suggestions for better performance
+const projectCache = new Map<string, Project>();
+const suggestionsCache = new Map<string, NameSuggestion[]>();
 
 export const useProjectStore = create<ProjectStore>((set, get) => ({
   currentProject: null,
@@ -53,75 +27,60 @@ export const useProjectStore = create<ProjectStore>((set, get) => ({
   createProject: async (parentsNames, genderPreference) => {
     set({ loading: true, error: null });
     try {
-      const projectId = generateId();
-      const project: Project = {
-        id: projectId,
-        parents_names: parentsNames,
-        gender_preference: genderPreference,
-        created_at: new Date().toISOString(),
-        created_by: 'anonymous'
-      };
-
-      const projects = getStoredProjects();
-      projects[projectId] = project;
-      saveProjects(projects);
-
-      const suggestions: Record<string, NameSuggestion[]> = getStoredSuggestions();
-      suggestions[projectId] = [];
-      saveSuggestions(suggestions);
-
-      set({ currentProject: project });
+      const projectId = await api.createProject(parentsNames, genderPreference);
+      const project = await api.getProject(projectId);
+      
+      projectCache.set(projectId, project);
+      suggestionsCache.set(projectId, []);
+      
+      set({ 
+        currentProject: project,
+        nameSuggestions: [],
+        loading: false 
+      });
+      
       return projectId;
     } catch (error) {
-      set({ error: (error as Error).message });
+      set({ error: (error as Error).message, loading: false });
       throw error;
-    } finally {
-      set({ loading: false });
     }
   },
 
   loadProject: async (id) => {
     set({ loading: true, error: null });
     try {
-      // First try to load from local storage
-      const projects = getStoredProjects();
-      let project = projects[id];
-      
-      if (!project) {
-        // If not in local storage, try to load from server
-        const response = await fetch(`/api/projects/${id}`);
-        if (!response.ok) {
-          throw new Error('Project not found');
-        }
-        project = await response.json();
-        
-        // Save to local storage for future access
-        projects[id] = project;
-        saveProjects(projects);
-      }
+      let project: Project;
+      let suggestions: NameSuggestion[];
 
-      const suggestions = getStoredSuggestions();
-      let projectSuggestions = suggestions[id] || [];
+      // Try to get from cache first
+      if (projectCache.has(id)) {
+        project = projectCache.get(id)!;
+        suggestions = suggestionsCache.get(id) || [];
+      } else {
+        // Fetch from API if not in cache
+        [project, suggestions] = await Promise.all([
+          api.getProject(id),
+          api.getSuggestions(id)
+        ]);
 
-      // If project was loaded from server, also load suggestions
-      if (!suggestions[id]) {
-        const suggestionsResponse = await fetch(`/api/projects/${id}/suggestions`);
-        if (suggestionsResponse.ok) {
-          projectSuggestions = await suggestionsResponse.json();
-          suggestions[id] = projectSuggestions;
-          saveSuggestions(suggestions);
-        }
+        // Update cache
+        projectCache.set(id, project);
+        suggestionsCache.set(id, suggestions);
       }
 
       set({
         currentProject: project,
-        nameSuggestions: projectSuggestions
+        nameSuggestions: suggestions,
+        loading: false
       });
     } catch (error) {
-      set({ error: (error as Error).message });
+      set({ 
+        error: (error as Error).message, 
+        loading: false,
+        currentProject: null,
+        nameSuggestions: []
+      });
       throw error;
-    } finally {
-      set({ loading: false });
     }
   },
 
@@ -131,52 +90,24 @@ export const useProjectStore = create<ProjectStore>((set, get) => ({
 
     set({ loading: true, error: null });
     try {
-      const suggestion: NameSuggestion = {
-        id: generateId(),
-        project_id: currentProject.id,
+      const suggestion = await api.addSuggestion(
+        currentProject.id,
         name,
         gender,
-        suggested_by: suggestedBy,
-        likes: 0,
-        is_favorite: false,
-        created_at: new Date().toISOString()
-      };
-
-      const suggestions = getStoredSuggestions();
-      suggestions[currentProject.id] = [...(suggestions[currentProject.id] || []), suggestion];
-      saveSuggestions(suggestions);
-
-      set(state => ({
-        nameSuggestions: [...state.nameSuggestions, suggestion]
-      }));
-    } catch (error) {
-      set({ error: (error as Error).message });
-    } finally {
-      set({ loading: false });
-    }
-  },
-
-  toggleFavorite: async (nameId) => {
-    const { currentProject, nameSuggestions } = get();
-    if (!currentProject) return;
-
-    set({ loading: true, error: null });
-    try {
-      const suggestions = getStoredSuggestions();
-      suggestions[currentProject.id] = nameSuggestions.map(s =>
-        s.id === nameId ? { ...s, is_favorite: !s.is_favorite } : s
+        suggestedBy
       );
-      saveSuggestions(suggestions);
+
+      const suggestions = suggestionsCache.get(currentProject.id) || [];
+      suggestions.unshift(suggestion);
+      suggestionsCache.set(currentProject.id, suggestions);
 
       set(state => ({
-        nameSuggestions: state.nameSuggestions.map(s =>
-          s.id === nameId ? { ...s, is_favorite: !s.is_favorite } : s
-        )
+        nameSuggestions: [suggestion, ...state.nameSuggestions],
+        loading: false
       }));
     } catch (error) {
-      set({ error: (error as Error).message });
-    } finally {
-      set({ loading: false });
+      set({ error: (error as Error).message, loading: false });
+      throw error;
     }
   },
 
@@ -184,37 +115,37 @@ export const useProjectStore = create<ProjectStore>((set, get) => ({
     const { currentProject, nameSuggestions } = get();
     if (!currentProject) return;
 
-    set({ loading: true, error: null });
     try {
-      const likes = getStoredLikes();
-      const nameKey = `${currentProject.id}-${nameId}`;
-      const userLikes = likes[nameKey] || [];
-      const userId = 'anonymous'; // In a real app, this would be the actual user ID
+      const { likes } = await api.toggleSuggestionLike(currentProject.id, nameId);
 
-      // Check if user already liked this name
-      if (userLikes.includes(userId)) {
-        return;
-      }
-
-      // Update likes
-      likes[nameKey] = [...userLikes, userId];
-      saveLikes(likes);
-
-      const suggestions = getStoredSuggestions();
-      suggestions[currentProject.id] = nameSuggestions.map(s =>
-        s.id === nameId ? { ...s, likes: s.likes + 1 } : s
+      const updatedSuggestions = nameSuggestions.map(s =>
+        s.id === nameId ? { ...s, likes } : s
       );
-      saveSuggestions(suggestions);
 
-      set(state => ({
-        nameSuggestions: state.nameSuggestions.map(s =>
-          s.id === nameId ? { ...s, likes: s.likes + 1 } : s
-        )
-      }));
+      suggestionsCache.set(currentProject.id, updatedSuggestions);
+      set({ nameSuggestions: updatedSuggestions });
     } catch (error) {
       set({ error: (error as Error).message });
-    } finally {
-      set({ loading: false });
+      throw error;
+    }
+  },
+
+  toggleFavorite: async (nameId) => {
+    const { currentProject, nameSuggestions } = get();
+    if (!currentProject) return;
+
+    try {
+      const { is_favorite } = await api.toggleSuggestionFavorite(currentProject.id, nameId);
+
+      const updatedSuggestions = nameSuggestions.map(s =>
+        s.id === nameId ? { ...s, is_favorite } : s
+      );
+
+      suggestionsCache.set(currentProject.id, updatedSuggestions);
+      set({ nameSuggestions: updatedSuggestions });
+    } catch (error) {
+      set({ error: (error as Error).message });
+      throw error;
     }
   }
 }));

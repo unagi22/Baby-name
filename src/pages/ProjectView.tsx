@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { Baby, Heart, Star, Share2, Filter } from 'lucide-react';
 import { useProjectStore } from '../store/projectStore';
 import type { Gender } from '../types';
 
 export default function ProjectView() {
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const {
     currentProject,
     nameSuggestions,
@@ -32,9 +33,16 @@ export default function ProjectView() {
 
   useEffect(() => {
     if (id) {
-      loadProject(id);
+      loadProject(id).catch((error) => {
+        if (error.message === 'Project not found') {
+          navigate('/not-found', { 
+            replace: true,
+            state: { message: 'The project you are looking for does not exist or has been removed.' }
+          });
+        }
+      });
     }
-  }, [id, loadProject]);
+  }, [id, loadProject, navigate]);
 
   const handleShare = async () => {
     const url = window.location.href;
@@ -127,20 +135,41 @@ export default function ProjectView() {
   const uniqueContributors = Array.from(new Set(nameSuggestions.map(s => s.suggested_by)));
 
   if (loading) {
-    return <div className="text-center py-8">Loading...</div>;
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-purple-200 border-t-purple-500 rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading project...</p>
+        </div>
+      </div>
+    );
   }
 
-  if (error) {
-    return <div className="text-center py-8 text-red-600">{error}</div>;
+  if (error && error !== 'Project not found') {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center max-w-md mx-auto px-4">
+          <div className="text-red-500 mb-4">
+            <svg className="w-16 h-16 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+          </div>
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">Something went wrong</h2>
+          <p className="text-gray-600 mb-4">{error}</p>
+          <button
+            onClick={() => window.location.reload()}
+            className="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 transition-colors"
+          >
+            Try Again
+          </button>
+        </div>
+      </div>
+    );
   }
 
   return (
     <div className="max-w-4xl mx-auto p-4">
-      {loading ? (
-        <div>Loading...</div>
-      ) : error ? (
-        <div className="text-red-500">{error}</div>
-      ) : currentProject ? (
+      {currentProject ? (
         <>
           <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
             <div className="flex items-center gap-4 mb-4">
