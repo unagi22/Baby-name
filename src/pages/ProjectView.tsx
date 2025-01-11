@@ -45,22 +45,23 @@ export default function ProjectView() {
   }, [id, loadProject, navigate]);
 
   const handleShare = async () => {
+    if (!currentProject) return;
+    
     const url = window.location.href;
+    const title = 'Baby Name Project';
+    const text = `Help ${currentProject.parents_names} choose a ${currentProject.gender_preference === 'either' ? '' : currentProject.gender_preference + ' '}baby name! Click to suggest names and vote.`;
+    
     if (navigator.share) {
       try {
-        await navigator.share({
-          title: 'Baby Name Project',
-          text: 'Help us choose a baby name!',
-          url
-        });
+        await navigator.share({ title, text, url });
       } catch (err) {
         if ((err as Error).name !== 'AbortError') {
-          navigator.clipboard.writeText(url);
+          await navigator.clipboard.writeText(url);
           alert('Project link copied to clipboard!');
         }
       }
     } else {
-      navigator.clipboard.writeText(url);
+      await navigator.clipboard.writeText(url);
       alert('Project link copied to clipboard!');
     }
   };
