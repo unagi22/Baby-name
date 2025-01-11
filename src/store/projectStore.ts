@@ -97,14 +97,14 @@ export const useProjectStore = create<ProjectStore>((set, get) => ({
         suggestedBy
       );
 
-      const suggestions = suggestionsCache.get(currentProject.id) || [];
-      suggestions.unshift(suggestion);
+      // Get fresh suggestions from API to ensure consistency
+      const suggestions = await api.getSuggestions(currentProject.id);
       suggestionsCache.set(currentProject.id, suggestions);
 
-      set(state => ({
-        nameSuggestions: [suggestion, ...state.nameSuggestions],
+      set({
+        nameSuggestions: suggestions,
         loading: false
-      }));
+      });
     } catch (error) {
       set({ error: (error as Error).message, loading: false });
       throw error;
