@@ -71,11 +71,12 @@ export default function ProjectView() {
     if (!newName.trim() || !suggestedBy.trim()) return;
 
     try {
+      setShowAddName(false); // Close modal first to prevent double submission
       await addNameSuggestion(newName, selectedGender, suggestedBy);
       localStorage.setItem('lastContributor', suggestedBy);
       setNewName('');
-      setSuggestedBy('');
-      setShowAddName(false);
+      setSelectedGender('boy');
+      setSuggestedBy(localStorage.getItem('lastContributor') || '');
     } catch (error) {
       console.error('Failed to add name:', error);
       alert('Failed to add name. Please try again.');
@@ -353,43 +354,53 @@ export default function ProjectView() {
                   </button>
                 </div>
               ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {filteredNames.map((suggestion) => (
-                    <div
-                      key={suggestion.id}
-                      className="p-4 border border-gray-200 rounded-lg hover:border-purple-200 transition-colors"
+                <>
+                  <div className="flex justify-end mb-4">
+                    <button
+                      onClick={() => setShowAddName(true)}
+                      className="px-6 py-2 bg-purple-100 text-purple-700 rounded-md hover:bg-purple-200 transition-colors"
                     >
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-lg font-medium">{suggestion.name}</span>
-                        {getBabyIcon(suggestion.gender)}
-                      </div>
-                      <div className="flex items-center justify-between text-sm text-gray-500">
-                        <span>Suggested by {suggestion.suggested_by}</span>
-                        <div className="flex items-center space-x-2">
-                          <button
-                            onClick={() => toggleLike(suggestion.id)}
-                            className="flex items-center space-x-1 text-gray-400 hover:text-red-500 transition-colors"
-                            title={suggestion.likes > 0 ? 'Unlike' : 'Like'}
-                          >
-                            <Heart className={`w-4 h-4 ${suggestion.likes > 0 ? 'fill-current text-red-500' : ''}`} />
-                            <span>{suggestion.likes}</span>
-                          </button>
-                          <button
-                            onClick={() => toggleFavorite(suggestion.id)}
-                            className={`${
-                              suggestion.is_favorite
-                                ? 'text-yellow-500'
-                                : 'text-gray-400 hover:text-yellow-500'
-                            } transition-colors`}
-                            title={suggestion.is_favorite ? 'Remove from favorites' : 'Add to favorites'}
-                          >
-                            <Star className={`w-4 h-4 ${suggestion.is_favorite ? 'fill-current' : ''}`} />
-                          </button>
+                      Add New Name
+                    </button>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {filteredNames.map((suggestion) => (
+                      <div
+                        key={suggestion.id}
+                        className="p-4 border border-gray-200 rounded-lg hover:border-purple-200 transition-colors"
+                      >
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-lg font-medium">{suggestion.name}</span>
+                          {getBabyIcon(suggestion.gender)}
+                        </div>
+                        <div className="flex items-center justify-between text-sm text-gray-500">
+                          <span>Suggested by {suggestion.suggested_by}</span>
+                          <div className="flex items-center space-x-2">
+                            <button
+                              onClick={() => toggleLike(suggestion.id)}
+                              className="flex items-center space-x-1 text-gray-400 hover:text-red-500 transition-colors"
+                              title={suggestion.likes > 0 ? 'Unlike' : 'Like'}
+                            >
+                              <Heart className={`w-4 h-4 ${suggestion.likes > 0 ? 'fill-current text-red-500' : ''}`} />
+                              <span>{suggestion.likes}</span>
+                            </button>
+                            <button
+                              onClick={() => toggleFavorite(suggestion.id)}
+                              className={`${
+                                suggestion.is_favorite
+                                  ? 'text-yellow-500'
+                                  : 'text-gray-400 hover:text-yellow-500'
+                              } transition-colors`}
+                              title={suggestion.is_favorite ? 'Remove from favorites' : 'Add to favorites'}
+                            >
+                              <Star className={`w-4 h-4 ${suggestion.is_favorite ? 'fill-current' : ''}`} />
+                            </button>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+                </>
               )
             ) : (
               <div>
