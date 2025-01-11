@@ -1,45 +1,55 @@
+import { createClient } from '@supabase/supabase-js';
 import type { Project, NameSuggestion, Gender } from '../types';
 
-const API_URL = 'https://babyname-api.netlify.app/.netlify/functions';
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+const supabase = createClient(supabaseUrl, supabaseKey);
 
 export async function createProject(parentsNames: string, genderPreference: Gender): Promise<string> {
-  const response = await fetch(`${API_URL}/create-project`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({ parentsNames, genderPreference }),
-  });
+  const { data, error } = await supabase
+    .from('projects')
+    .insert([
+      {
+        parents_names: parentsNames,
+        gender_preference: genderPreference,
+        created_at: new Date().toISOString(),
+        created_by: 'anonymous'
+      }
+    ])
+    .select()
+    .single();
 
-  if (!response.ok) {
-    throw new Error('Failed to create project');
-  }
-
-  const data = await response.json();
-  return data.projectId;
+  if (error) throw new Error(error.message);
+  return data.id;
 }
 
 export async function getProject(projectId: string): Promise<Project> {
-  const response = await fetch(`${API_URL}/get-project/${projectId}`);
-  
-  if (!response.ok) {
-    if (response.status === 404) {
+  const { data, error } = await supabase
+    .from('projects')
+    .select('*')
+    .eq('id', projectId)
+    .single();
+
+  if (error) {
+    if (error.code === 'PGRST116') {
       throw new Error('Project not found');
     }
-    throw new Error('Failed to fetch project');
+    throw new Error(error.message);
   }
 
-  return response.json();
+  return data;
 }
 
 export async function getSuggestions(projectId: string): Promise<NameSuggestion[]> {
-  const response = await fetch(`${API_URL}/get-suggestions/${projectId}`);
-  
-  if (!response.ok) {
-    throw new Error('Failed to fetch suggestions');
-  }
+  const { data, error } = await supabase
+    .from('suggestions')
+    .select('*')
+    .eq('project_id', projectId)
+    .order('created_at', { ascending: false });
 
-  return response.json();
+  if (error) throw new Error(error.message);
+  return data || [];
 }
 
 export async function addSuggestion(
@@ -48,55 +58,70 @@ export async function addSuggestion(
   gender: Gender,
   suggestedBy: string
 ): Promise<NameSuggestion> {
-  const response = await fetch(`${API_URL}/add-suggestion`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({ projectId, name, gender, suggestedBy }),
-  });
+  const { data, error } = await supabase
+    .from('suggestions')
+    .insert([
+      {
+        project_id: projectId,
+        name,
+        gender,
+        suggested_by: suggestedBy,
+        likes: 0,
+        is_favorite: false,
+        created_at: new Date().toISOString()
+      }
+    ])
+    .select()
+    .single();
 
-  if (!response.ok) {
-    throw new Error('Failed to add suggestion');
-  }
-
-  return response.json();
+  if (error) throw new Error(error.message);
+  return data;
 }
 
 export async function toggleSuggestionLike(
   projectId: string,
   suggestionId: string
 ): Promise<{ likes: number }> {
-  const response = await fetch(`${API_URL}/toggle-like`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({ projectId, suggestionId }),
-  });
+  // First get the current likes
+  const { data: suggestion, error: fetchError } = await supabase
+    .from('suggestions')
+    .select('likes')
+    .eq('id', suggestionId)
+    .single();
 
-  if (!response.ok) {
-    throw new Error('Failed to toggle like');
-  }
+  if (fetchError) throw new Error(fetchError.message);
 
-  return response.json();
+  // Toggle the like by incrementing
+  const newLikes = (suggestion.likes || 0) + 1;
+  const { error: updateError } = await supabase
+    .from('suggestions')
+    .update({ likes: newLikes })
+    .eq('id', suggestionId);
+
+  if (updateError) throw new Error(updateError.message);
+  return { likes: newLikes };
 }
 
 export async function toggleSuggestionFavorite(
   projectId: string,
   suggestionId: string
 ): Promise<{ is_favorite: boolean }> {
-  const response = await fetch(`${API_URL}/toggle-favorite`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({ projectId, suggestionId }),
-  });
+  // First get the current favorite status
+  const { data: suggestion, error: fetchError } = await supabase
+    .from('suggestions')
+    .select('is_favorite')
+    .eq('id', suggestionId)
+    .single();
 
-  if (!response.ok) {
-    throw new Error('Failed to toggle favorite');
-  }
+  if (fetchError) throw new Error(fetchError.message);
 
-  return response.json();
+  // Toggle the favorite status
+  const newFavoriteStatus = !suggestion.is_favorite;
+  const { error: updateError } = await supabase
+    .from('suggestions')
+    .update({ is_favorite: newFavoriteStatus })
+    .eq('id', suggestionId);
+
+  if (updateError) throw new Error(updateError.message);
+  return { is_favorite: newFavoriteStatus };
 }
