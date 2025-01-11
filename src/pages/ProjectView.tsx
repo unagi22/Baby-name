@@ -2,6 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Baby, Heart, Star, Share2, Filter } from 'lucide-react';
 import { useProjectStore } from '../store/projectStore';
+import { useLanguageStore } from '../store/languageStore';
+import { LanguageSwitcher } from '../components/LanguageSwitcher';
 import type { Gender } from '../types';
 
 export default function ProjectView() {
@@ -17,6 +19,7 @@ export default function ProjectView() {
     toggleFavorite,
     toggleLike
   } = useProjectStore();
+  const { t } = useLanguageStore();
 
   const [showAddName, setShowAddName] = useState(false);
   const [newName, setNewName] = useState('');
@@ -141,7 +144,7 @@ export default function ProjectView() {
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <div className="w-16 h-16 border-4 border-purple-200 border-t-purple-500 rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading project...</p>
+          <p className="text-gray-600">{t('loading')}</p>
         </div>
       </div>
     );
@@ -156,13 +159,13 @@ export default function ProjectView() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
             </svg>
           </div>
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Something went wrong</h2>
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">{t('error.title')}</h2>
           <p className="text-gray-600 mb-4">{error}</p>
           <button
             onClick={() => window.location.reload()}
             className="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 transition-colors"
           >
-            Try Again
+            {t('error.tryAgain')}
           </button>
         </div>
       </div>
@@ -179,8 +182,8 @@ export default function ProjectView() {
                 <Baby className="w-6 h-6 text-purple-500" />
               </div>
               <div>
-                <h1 className="text-2xl font-semibold">{currentProject.parents_names}'s Project</h1>
-                <p className="text-gray-500">Looking for baby names</p>
+                <h1 className="text-2xl font-semibold">{currentProject.parents_names}</h1>
+                <p className="text-gray-500">{t('projectView.lookingForNames')}</p>
               </div>
               <div className="ml-auto flex gap-2">
                 <button 
@@ -204,7 +207,7 @@ export default function ProjectView() {
               <div className="fixed right-0 top-0 h-full w-72 bg-white shadow-lg z-40 overflow-y-auto">
                 <div className="p-4">
                   <div className="flex justify-between items-center mb-6">
-                    <h3 className="text-lg font-medium">Filters</h3>
+                    <h3 className="text-lg font-medium">{t('filters.title')}</h3>
                     <button
                       onClick={() => setShowFilters(false)}
                       className="text-gray-400 hover:text-gray-600"
@@ -215,7 +218,7 @@ export default function ProjectView() {
 
                   <div className="space-y-6">
                     <div>
-                      <h4 className="font-medium mb-3">Gender</h4>
+                      <h4 className="font-medium mb-3">{t('filters.gender')}</h4>
                       <div className="space-y-2">
                         <label className="flex items-center">
                           <input
@@ -226,7 +229,7 @@ export default function ProjectView() {
                             onChange={(e) => setGenderFilter(e.target.value as typeof genderFilter)}
                             className="mr-2"
                           />
-                          All Genders
+                          {t('filters.allGenders')}
                         </label>
                         <label className="flex items-center">
                           <input
@@ -237,7 +240,7 @@ export default function ProjectView() {
                             onChange={(e) => setGenderFilter(e.target.value as typeof genderFilter)}
                             className="mr-2"
                           />
-                          Male Names
+                          {t('filters.maleNames')}
                         </label>
                         <label className="flex items-center">
                           <input
@@ -248,13 +251,13 @@ export default function ProjectView() {
                             onChange={(e) => setGenderFilter(e.target.value as typeof genderFilter)}
                             className="mr-2"
                           />
-                          Female Names
+                          {t('filters.femaleNames')}
                         </label>
                       </div>
                     </div>
 
                     <div>
-                      <h4 className="font-medium mb-3">Sort By</h4>
+                      <h4 className="font-medium mb-3">{t('filters.sortBy')}</h4>
                       <div className="space-y-2">
                         <label className="flex items-center">
                           <input
@@ -265,7 +268,7 @@ export default function ProjectView() {
                             onChange={(e) => setSortBy(e.target.value as typeof sortBy)}
                             className="mr-2"
                           />
-                          Newest First
+                          {t('filters.newest')}
                         </label>
                         <label className="flex items-center">
                           <input
@@ -276,13 +279,13 @@ export default function ProjectView() {
                             onChange={(e) => setSortBy(e.target.value as typeof sortBy)}
                             className="mr-2"
                           />
-                          Most Popular
+                          {t('filters.popular')}
                         </label>
                       </div>
                     </div>
 
                     <div>
-                      <h4 className="font-medium mb-3">By Contributor</h4>
+                      <h4 className="font-medium mb-3">{t('filters.byContributor')}</h4>
                       <div className="space-y-2">
                         <label className="flex items-center">
                           <input
@@ -293,7 +296,7 @@ export default function ProjectView() {
                             onChange={(e) => setContributorFilter(e.target.value)}
                             className="mr-2"
                           />
-                          All Contributors
+                          {t('filters.allContributors')}
                         </label>
                         {uniqueContributors.map(contributor => (
                           <label key={contributor} className="flex items-center">
@@ -326,7 +329,7 @@ export default function ProjectView() {
                         : 'text-gray-500 hover:text-gray-700 hover:border-gray-300'
                     }`}
                   >
-                    All Names
+                    {t('projectView.allNames')}
                   </button>
                   <button
                     onClick={() => setActiveTab('favorites')}
@@ -336,7 +339,7 @@ export default function ProjectView() {
                         : 'text-gray-500 hover:text-gray-700 hover:border-gray-300'
                     }`}
                   >
-                    Favorites
+                    {t('projectView.favorites')}
                   </button>
                 </nav>
               </div>
@@ -345,12 +348,12 @@ export default function ProjectView() {
             {activeTab === 'all' ? (
               filteredNames.length === 0 ? (
                 <div className="text-center py-12">
-                  <p className="text-gray-500">No names yet</p>
+                  <p className="text-gray-500">{t('projectView.noNamesYet')}</p>
                   <button
                     onClick={() => setShowAddName(true)}
                     className="mt-4 px-6 py-2 bg-purple-100 text-purple-700 rounded-md hover:bg-purple-200 transition-colors"
                   >
-                    Add First Name
+                    {t('projectView.addFirstName')}
                   </button>
                 </div>
               ) : (
@@ -360,7 +363,7 @@ export default function ProjectView() {
                       onClick={() => setShowAddName(true)}
                       className="px-6 py-2 bg-purple-100 text-purple-700 rounded-md hover:bg-purple-200 transition-colors"
                     >
-                      Add New Name
+                      {t('projectView.addNewName')}
                     </button>
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -374,12 +377,12 @@ export default function ProjectView() {
                           {getBabyIcon(suggestion.gender)}
                         </div>
                         <div className="flex items-center justify-between text-sm text-gray-500">
-                          <span>Suggested by {suggestion.suggested_by}</span>
+                          <span>{t('projectView.suggestedBy')} {suggestion.suggested_by}</span>
                           <div className="flex items-center space-x-2">
                             <button
                               onClick={() => toggleLike(suggestion.id)}
                               className="flex items-center space-x-1 text-gray-400 hover:text-red-500 transition-colors"
-                              title={suggestion.likes > 0 ? 'Unlike' : 'Like'}
+                              title={suggestion.likes > 0 ? t('projectView.unlike') : t('projectView.like')}
                             >
                               <Heart className={`w-4 h-4 ${suggestion.likes > 0 ? 'fill-current text-red-500' : ''}`} />
                               <span>{suggestion.likes}</span>
@@ -391,7 +394,7 @@ export default function ProjectView() {
                                   ? 'text-yellow-500'
                                   : 'text-gray-400 hover:text-yellow-500'
                               } transition-colors`}
-                              title={suggestion.is_favorite ? 'Remove from favorites' : 'Add to favorites'}
+                              title={suggestion.is_favorite ? t('projectView.removeFromFavorites') : t('projectView.addToFavorites')}
                             >
                               <Star className={`w-4 h-4 ${suggestion.is_favorite ? 'fill-current' : ''}`} />
                             </button>
@@ -406,8 +409,8 @@ export default function ProjectView() {
               <div>
                 {filteredNames.filter(n => n.is_favorite).length === 0 ? (
                   <div className="text-center py-12">
-                    <p className="text-gray-500">No favorite names yet</p>
-                    <p className="text-sm text-gray-400 mt-2">Star names to add them to your favorites</p>
+                    <p className="text-gray-500">{t('projectView.noFavorites')}</p>
+                    <p className="text-sm text-gray-400 mt-2">{t('projectView.starToAdd')}</p>
                   </div>
                 ) : (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -423,12 +426,12 @@ export default function ProjectView() {
                             {getBabyIcon(suggestion.gender)}
                           </div>
                           <div className="flex items-center justify-between text-sm text-gray-500">
-                            <span>Suggested by {suggestion.suggested_by}</span>
+                            <span>{t('projectView.suggestedBy')} {suggestion.suggested_by}</span>
                             <div className="flex items-center space-x-2">
                               <button
                                 onClick={() => toggleLike(suggestion.id)}
                                 className="flex items-center space-x-1 text-gray-400 hover:text-red-500 transition-colors"
-                                title={suggestion.likes > 0 ? 'Unlike' : 'Like'}
+                                title={suggestion.likes > 0 ? t('projectView.unlike') : t('projectView.like')}
                               >
                                 <Heart className={`w-4 h-4 ${suggestion.likes > 0 ? 'fill-current text-red-500' : ''}`} />
                                 <span>{suggestion.likes}</span>
@@ -436,7 +439,7 @@ export default function ProjectView() {
                               <button
                                 onClick={() => toggleFavorite(suggestion.id)}
                                 className="text-yellow-500"
-                                title="Remove from favorites"
+                                title={t('projectView.removeFromFavorites')}
                               >
                                 <Star className="w-4 h-4 fill-current" />
                               </button>
@@ -454,7 +457,7 @@ export default function ProjectView() {
             <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
               <div className="bg-white rounded-lg p-6 max-w-md w-full">
                 <div className="flex justify-between items-center mb-4">
-                  <h2 className="text-xl font-bold">Suggest a Name</h2>
+                  <h2 className="text-xl font-bold">{t('projectView.suggestName')}</h2>
                   <button
                     onClick={() => setShowAddName(false)}
                     className="text-gray-400 hover:text-gray-600 text-xl"
@@ -466,21 +469,21 @@ export default function ProjectView() {
                 <form onSubmit={handleAddName} className="space-y-6">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Baby Name
+                      {t('projectView.babyName')}
                     </label>
                     <input
                       type="text"
                       value={newName}
                       onChange={(e) => setNewName(e.target.value)}
                       className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                      placeholder="Enter a baby name"
+                      placeholder={t('projectView.enterBabyName')}
                       required
                     />
                   </div>
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Gender
+                      {t('projectView.gender')}
                     </label>
                     <div className="grid grid-cols-2 gap-4">
                       {(['boy', 'girl'] as const).map((gender) => (
@@ -513,14 +516,14 @@ export default function ProjectView() {
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Your Name
+                      {t('projectView.yourName')}
                     </label>
                     <input
                       type="text"
                       value={suggestedBy}
                       onChange={(e) => setSuggestedBy(e.target.value)}
                       className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                      placeholder="Enter your name"
+                      placeholder={t('projectView.enterYourName')}
                       required
                     />
                   </div>
@@ -529,7 +532,7 @@ export default function ProjectView() {
                     type="submit"
                     className="w-full py-3 bg-purple-600 text-white rounded-md hover:bg-purple-700 transition-colors"
                   >
-                    Submit Suggestion
+                    {t('projectView.submit')}
                   </button>
                 </form>
               </div>

@@ -1,5 +1,7 @@
 export type Gender = 'boy' | 'girl' | 'either';
 
+export type Language = 'crnogorski' | 'english';
+
 export interface Project {
   id: string;
   parents_names: string;
